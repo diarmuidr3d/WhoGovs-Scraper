@@ -159,7 +159,7 @@ class OrganisationRecord:
 
 
 class RepInConstituency(ConstituencyRecord, TemporalRecord, RepresentativeRecord, OrganisationRecord):
-    def __init__(self, constituency, representative, organisations, start_date, end_date=None, title=None):
+    def __init__(self, constituency, representative, organisations, start_date=None, end_date=None, title=None):
         """
         :type constituency: Constituency
         :type representative: Representative
