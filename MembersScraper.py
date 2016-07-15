@@ -1,5 +1,10 @@
+import traceback
+import urllib
+import unicodedata
 import requests
-from Objects import Representative, RepInConstituency, Constituency
+import sys
+
+from Objects import Representative, RepInConstituency, Constituency, Party, House, export_graph
 from lxml import html
 from datetime import date as Date
 
@@ -42,14 +47,21 @@ class MembersScraper:
             all_houses = page.xpath(self.xpath_all_house)
             all_constituencies = page.xpath(self.xpath_all_constituency)
             all_parties = page.xpath(self.xpath_all_parties)
-            representative = Representative(member_name, lifetime[0], lifetime[1], professions)
-            for each in all_constituencies:
-                constituency = Constituency(each)
-                # rep_in_constituency = RepInConstituency(constituency, representative, )
+            representative = Representative(member_id, member_name, lifetime[0], lifetime[1], professions)
+            for each in range(0, len(all_constituencies)):
+                constituency_id = self.encode(self.to_str(all_constituencies[each]))
+                constituency = Constituency(constituency_id, all_constituencies[each])
+                organisations = []
+                if len(all_parties) > each:
+                    organisations.append(Party(self.encode(self.to_str(all_parties[each])), all_parties[each]))
+                organisations.append(House(self.encode(self.to_str(all_houses[each])), all_houses[each]))
+                rep_record = RepInConstituency(str(member_id)+"_"+constituency_id, constituency, representative, organisations)
+                representative.add_rep_records(rep_record)
             print(member_name, ", ", lifetime, ", ", professions, ", ", party, ", ", all_houses, ", ", all_constituencies, ", ", all_parties)
-            # self.scrape_details(member_id + 1)
+            return True
         else:
-            return 0
+            print("no data found for id: ", member_id)
+            return False
 
     def parse_professions(self, professions):
         index = professions.find(',')
@@ -95,5 +107,31 @@ class MembersScraper:
             died = parse_date(died)
         return born, died
 
+    def to_str(self, to_convert):
+        try:
+            return str(to_convert)
+        except UnicodeEncodeError:
+            return unicodedata.normalize('NFKD', to_convert).encode('ascii', 'ignore')
 
-MembersScraper().scrape_details(12)
+    def encode(self, string):
+        return urllib.quote(string, safe='')
+
+
+rep_id = 1
+scraper = MembersScraper()
+false_count = 0
+try:
+    while false_count < 5:
+        return_value = scraper.scrape_details(rep_id)
+        if return_value:
+            false_count = 0
+        else:
+            false_count += 1
+        rep_id += 1
+except (KeyboardInterrupt, SystemExit, Exception) as err:
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    print("*** print_exception: ***")
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+    print("*** Exception over ***")
+    export_graph("whogovs.n3")
+export_graph("whogovs.n3")
