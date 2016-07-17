@@ -2,6 +2,7 @@ from tribool import Tribool
 from datetime import date
 from rdflib import Graph, Namespace, URIRef, RDF, XSD, Literal
 from rdflib.resource import Resource
+import re
 
 WHOGOVSNS = Namespace("http://www.whogovs.com/ontology/")
 OBJECTSNS = Namespace("http://www.whogovs.com/objects/")
@@ -19,8 +20,9 @@ def export_graph(filename):
 
 class LinkedClass(Resource):
     def __init__(self, object_uri):
-        uri = OBJECTSNS + str(object_uri)
-        Resource.__init__(self, graph, URIRef(uri))
+        self.object_id = object_uri
+        self.object_uri = OBJECTSNS + str(object_uri)
+        Resource.__init__(self, graph, URIRef(self.object_uri))
         resource_type = URIRef(WHOGOVSNS + self.__class__.__name__)
         self.add(RDF.type, resource_type)
 
