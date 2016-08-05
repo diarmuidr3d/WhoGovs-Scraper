@@ -28,6 +28,7 @@ class MembersScraper:
     xpath_appointments = "/html/body/div/div/div/div[1]/div[2]/div[1]/div/div[1]/div[6]/p[3]"
 
     def scrape_details(self, member_id):
+        print(member_id)
         content = requests.get(self.members_url + str(member_id)).content
         page = html.fromstring(content)
         member_name = page.xpath(self.xpath_name)
@@ -55,7 +56,6 @@ class MembersScraper:
             representative = Representative(member_id, member_name, lifetime[0], lifetime[1], professions)
             if len(all_appointments) > 0:
                 appointments = self.__parse_appointments(html.tostring(all_appointments[0]), representative)
-                print(appointments)
             for each in range(0, len(all_constituencies)):
                 constituency_id = self.__encode(self.__to_str(all_constituencies[each]))
                 constituency = Constituency(constituency_id, all_constituencies[each])
@@ -66,16 +66,12 @@ class MembersScraper:
                 rep_record = RepInConstituency(str(member_id) + "_" + constituency_id, constituency, representative,
                                                organisations)
                 representative.add_rep_records(rep_record)
-            print(
-            member_name, ", ", lifetime, ", ", professions, ", ", party, ", ", all_houses, ", ", all_constituencies,
-            ", ", all_parties)
             return True
         else:
             print("no data found for id: ", member_id)
             return False
 
     def __parse_appointments(self, details, representative):
-        print(details)
         split_app = re.findall(r">[^<]*<", details)
         current_dail = ""
         return_values = {}
@@ -149,23 +145,23 @@ class MembersScraper:
     def __encode(self, string):
         return urllib.quote(string, safe='')
 
-
-# MembersScraper().scrape_details(6)
-rep_id = 1
-scraper = MembersScraper()
-false_count = 0
-try:
-    while false_count < 5:
-        return_value = scraper.scrape_details(rep_id)
-        if return_value:
-            false_count = 0
-        else:
-            false_count += 1
-        rep_id += 1
-except (KeyboardInterrupt, SystemExit, Exception) as err:
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    print("*** print_exception: ***")
-    traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
-    print("*** Exception over ***")
+def begin_scraping():
+    # MembersScraper().scrape_details(6)
+    rep_id = 1
+    scraper = MembersScraper()
+    false_count = 0
+    try:
+        while false_count < 5:
+            return_value = scraper.scrape_details(rep_id)
+            if return_value:
+                false_count = 0
+            else:
+                false_count += 1
+            rep_id += 1
+    except (KeyboardInterrupt, SystemExit, Exception) as err:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print("*** print exception: ***")
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print("*** Exception over ***")
+        export_graph("whogovs.n3")
     export_graph("whogovs.n3")
-export_graph("whogovs.n3")
