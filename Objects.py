@@ -21,9 +21,10 @@ def export_graph(filename):
 class LinkedClass(Resource):
     def __init__(self, object_uri):
         self.object_id = object_uri
-        self.object_uri = OBJECTSNS + str(object_uri)
+        class_name = self.__class__.__name__
+        self.object_uri = OBJECTSNS + "/" +class_name + "/" + str(object_uri)
         Resource.__init__(self, graph, URIRef(self.object_uri))
-        resource_type = URIRef(WHOGOVSNS + self.__class__.__name__)
+        resource_type = URIRef(WHOGOVSNS + class_name)
         self.add(RDF.type, resource_type)
 
 
@@ -415,6 +416,17 @@ class RepSpoke(ProceedingRecord, RepresentativeRecord):
         ProceedingRecord.__init__(self, unique_id, proceeding)
         RepresentativeRecord.__init__(self, unique_id, representative)
         self.add(WHOGOVSNS.order, Literal(order, datatype=XSD.positiveInteger))
+        self.add(WHOGOVSNS.content, Literal(content, datatype=XSD.string))
+
+
+class RepWrote(ProceedingRecord, RepresentativeRecord):
+    def __init__(self, unique_id, representative, proceeding, content):
+        """
+        :type unique_id: str
+        :type content: str
+        """
+        ProceedingRecord.__init__(self, unique_id, proceeding)
+        RepresentativeRecord.__init__(self, unique_id, representative)
         self.add(WHOGOVSNS.content, Literal(content, datatype=XSD.string))
 
 
