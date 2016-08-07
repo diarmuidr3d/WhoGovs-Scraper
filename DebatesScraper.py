@@ -1,21 +1,7 @@
 import datetime
-import requests
 from lxml import html
-# from lxml.html import HtmlElement
-from Objects import Debate
-
-dail_debates_2016_jan_1 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/takes/dail2016011300001?opendocument"
-dail_debates_2016_jan_2 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/takes/dail2016011300002?opendocument"
-dail_debates_2016_jan_3 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/takes/dail2016011300003?opendocument"
-dail_debates_2016_jan13 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/takes/dail2016011300013?opendocument"
-dail_debates_years = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/yearlist?readform&chamber=dail"
-seanad_debates_years = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/yearlist?readform&chamber=seanad"
-committee_debates_years = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/yearlist?readform&chamber=committees"
-
-dail_debates_2016 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/datelist?readform&chamber=dail&year=2016"
-seanad_debat_2016 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/datelist?readform&chamber=seanad&year=2016"
-committee_debates_2016 = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/committeebasebyyear/2016?opendocument"
-
+from Objects import Debate, Representative, RepSpoke
+from Scraper import to_str, get_page, encode
 # Committee page by year has significantly different structure to the houses
 
 domain = "http://oireachtasdebates.oireachtas.ie/"
@@ -25,25 +11,17 @@ xpath_headings_for_debate = "/html/body/div[1]/div/div/div[3]/div/table[2]/tr/td
 xpath_page_content = "/html/body/div[1]/div/div/div[3]/div/table[2]/tr/td"
 
 
-def get_page(url):
-    """
-    :type url: str
-    """
-    content = requests.get(url).content
-    return html.fromstring(content)
-
-
 def get_debate_urls_for_year(house, year):
     """
     :type year: int
     :type house: str
     """
     url = "http://oireachtasdebates.oireachtas.ie/debates%20authoring/debateswebpack.nsf/datelist?readform&chamber=" + \
-          house + "&year=" + str(year)
+          house + "&year=" + to_str(year)
     year_page = get_page(url)
     day_urls = year_page.xpath(xpath_days_for_year)
     for each in day_urls:
-        get_debate_content(domain + str(each))
+        get_debate_content(domain + to_str(each))
 
 
 def get_debate_content(url):
@@ -58,6 +36,7 @@ def get_debate_content(url):
     date = datetime.date(int(datestring[:4]), int(datestring[4:6]), int(datestring[6:]))
     reached_end = False
     current_proceeding = None
+    proceeding_content_order = 0
     while not reached_end:
         page = get_page(url + str(page_num).zfill(5))
         content = page.xpath(xpath_page_content)
@@ -70,26 +49,21 @@ def get_debate_content(url):
                 if type(child) is html.HtmlElement:
                     tag = child.tag
                     if tag == 'h3':
-                        title = child.xpath(xpath_heading_text)[0]
+                        title = to_str(child.xpath(xpath_heading_text)[0])
                         current_proceeding = Debate(1, title, date)
+                        proceeding_content_order = 0
+                    elif tag == 'h4':
+                    #     TODO: Add sub proceedings to the proceeding to allow for individual questions
                     elif tag == 'p':
+                        # question_number = child.xpath TODO: avoid including the description of a question in the debate
                         identifier = "MemberID="
-                        rep_url = str(child.xpath("a[1]/@href")[0])
-                        rep_id = int(rep_url[rep_url.find(identifier)+len(identifier):])
+                        rep_url = child.xpath("a[1]/@href")
+                        if len(rep_url) is not 0:
+                            rep_url = to_str(rep_url[0])
+                            rep_id = to_str(rep_url[rep_url.find(identifier)+len(identifier):])
+                            representative = Representative(rep_id)
+                        text = to_str(child.xpath("text()"))
+                        record = RepSpoke(rep_id + "_" + encode(title) + "_" + to_str(proceeding_content_order), representative, current_proceeding, text, proceeding_content_order,)
+                        current_proceeding.add_proceeding_record(record)
+                        proceeding_content_order += 1
 #                         TODO: create the repspoke / repwrote items and add them to the proceeding
-
-
-
-dail = "dail"
-seanad = "seanad"
-earliest_year = 1919
-
-def begin_scrapng():
-    current_year = datetime.datetime.now().year
-    while current_year >= earliest_year:
-        get_debate_urls_for_year(dail, current_year)
-        get_debate_urls_for_year(seanad, current_year)
-        current_year -= 1
-
-
-
