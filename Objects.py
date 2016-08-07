@@ -35,7 +35,7 @@ class LinkedClass(Resource):
 
 
 class Contactable(LinkedClass):
-    def __init__(self, unique_id, name, email_address=None, facebook_id=None, twitter_id=None, website_id=None):
+    def __init__(self, unique_id, name=None, email_address=None, facebook_id=None, twitter_id=None, website_id=None):
         """
         :type unique_id: str
         :type website_id: str
@@ -45,7 +45,8 @@ class Contactable(LinkedClass):
         :type name: str
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
+        if name is not None:
+            self.set_name(name)
         if website_id is not None:
             self.add_website(website_id)
         if twitter_id is not None:
@@ -54,6 +55,9 @@ class Contactable(LinkedClass):
             self.add_facebook_id(facebook_id)
         if email_address is not None:
             self.add_email_address(email_address)
+
+    def set_name(self, name):
+        self.set(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
 
     def add_website(self, website):
         self.add(WHOGOVSNS.hasWebsite, Literal(website, datatype=XSD.string))
@@ -69,7 +73,7 @@ class Contactable(LinkedClass):
 
 
 class Person(Contactable):
-    def __init__(self, unique_id, name, born_on=None, died_on=None, profession=None, election_record=None,
+    def __init__(self, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
                  email_address=None, facebook_id=None, twitter_id=None, website_id=None):
         """
         :type unique_id: str
@@ -133,7 +137,7 @@ class Person(Contactable):
 
 
 class Representative(Person):
-    def __init__(self, unique_id, name, born_on=None, died_on=None, profession=None, election_record=None,
+    def __init__(self, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
                  email_address=None, facebook_id=None, twitter_id=None, website_id=None, has_rep_record=None):
         """
         :type has_rep_record: [RepInConstituency]
