@@ -2,12 +2,18 @@ from tribool import Tribool
 from datetime import date
 from rdflib import Graph, Namespace, URIRef, RDF, XSD, Literal
 from rdflib.resource import Resource
-import re
 
 WHOGOVSNS = Namespace("http://www.whogovs.com/ontology/")
 OBJECTSNS = Namespace("http://www.whogovs.com/objects/")
 
-graph = Graph()
+
+class MyGraph(Graph):
+    def add(self, (s, p, o)):
+        if (s, p, o) not in self:
+            Graph.add(self, (s, p, o))
+
+
+graph = MyGraph()
 graph.namespace_manager.bind("WHOGOVS", WHOGOVSNS)
 graph.namespace_manager.bind("WGOBJ", OBJECTSNS)
 
@@ -22,10 +28,10 @@ class LinkedClass(Resource):
     def __init__(self, object_uri):
         self.object_id = object_uri
         class_name = self.__class__.__name__
-        self.object_uri = OBJECTSNS + "/" +class_name + "/" + str(object_uri)
+        self.object_uri = OBJECTSNS + class_name + "/" + str(object_uri)
         Resource.__init__(self, graph, URIRef(self.object_uri))
         resource_type = URIRef(WHOGOVSNS + class_name)
-        self.add(RDF.type, resource_type)
+        self.set(RDF.type, resource_type)
 
 
 class Contactable(LinkedClass):
@@ -82,7 +88,7 @@ class Person(Contactable):
             self.add_death_date(died_on)
         if profession is not None:
             if type(profession) is list:
-                self.list_add_profession(profession)
+                self.add_profession_list(profession)
             else:
                 self.add_profession(profession)
         if election_record is not None:
@@ -92,10 +98,10 @@ class Person(Contactable):
                 self.add_election_record(election_record)
 
     def add_birth_date(self, born_on):
-        self.add(WHOGOVSNS.bornOn, Literal(born_on, datatype=XSD.dateTime))
+        self.set(WHOGOVSNS.bornOn, Literal(born_on, datatype=XSD.dateTime))
 
     def add_death_date(self, died_on):
-        self.add(WHOGOVSNS.diedOn, Literal(died_on, datatype=XSD.dateTime))
+        self.set(WHOGOVSNS.diedOn, Literal(died_on, datatype=XSD.dateTime))
 
     def add_profession(self, profession):
         """
@@ -103,7 +109,7 @@ class Person(Contactable):
         """
         self.add(WHOGOVSNS.hasProfession, Literal(profession, datatype=XSD.string))
 
-    def list_add_profession(self, professions):
+    def add_profession_list(self, professions):
         """
         This is a bulk method for add_profession, provide a list of professions to add
         :type professions: list
@@ -165,7 +171,7 @@ class Constituency(LinkedClass):
         :type name: str
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
+        self.set(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
 
 
 class Organisation(LinkedClass):
@@ -177,7 +183,7 @@ class Organisation(LinkedClass):
         :type belongs_to: [Organisation]
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
+        self.set(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
         if has_belonging is not None:
             if type(has_belonging) is list:
                 self.add_belonging_organisation_list(has_belonging)
@@ -246,7 +252,7 @@ class Election(LinkedClass):
         :type election_date: date
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.onDate, election_date)
+        self.set(WHOGOVSNS.onDate, election_date)
         if election_parts is not None:
             if type(election_parts) is list:
                 self.add_election_part(election_parts)
@@ -274,7 +280,7 @@ class ConstituencyRecord(LinkedClass):
         :type constituency: Constituency
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.inConstituency, constituency)
+        self.set(WHOGOVSNS.inConstituency, constituency)
 
 
 class ElectionRecord(ConstituencyRecord, LinkedClass):
@@ -290,7 +296,7 @@ class ElectionRecord(ConstituencyRecord, LinkedClass):
                 self.add(WHOGOVSNS.hasCandidate, each)
         else:
             self.add(WHOGOVSNS.hasCandidate, candidates)
-        self.add(WHOGOVSNS.inElection, election)
+        self.set(WHOGOVSNS.inElection, election)
 
 
 class TemporalRecord(LinkedClass):
@@ -302,7 +308,7 @@ class TemporalRecord(LinkedClass):
         :type start_date: date
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.startDate, Literal(start_date, datatype=XSD.dateTime))
+        self.set(WHOGOVSNS.startDate, Literal(start_date, datatype=XSD.dateTime))
         if end_date is not None:
             self.add_end_date(end_date)
         if title is not None:
@@ -312,13 +318,13 @@ class TemporalRecord(LinkedClass):
         """
         :type end_date: date
         """
-        self.add(WHOGOVSNS.endDate, Literal(end_date, datatype=XSD.dateTime))
+        self.set(WHOGOVSNS.endDate, Literal(end_date, datatype=XSD.dateTime))
 
     def add_title(self, title):
         """
         :type title: str
         """
-        self.add(WHOGOVSNS.title, Literal(title, datatype=XSD.string))
+        self.set(WHOGOVSNS.title, Literal(title, datatype=XSD.string))
 
 
 class RepresentativeRecord(LinkedClass):
@@ -328,7 +334,7 @@ class RepresentativeRecord(LinkedClass):
         :type representative: Representative
         """
         LinkedClass.__init__(self, unique_id)
-        self.add(WHOGOVSNS.representative, representative)
+        self.set(WHOGOVSNS.representative, representative)
 
 
 class OrganisationRecord(LinkedClass):
