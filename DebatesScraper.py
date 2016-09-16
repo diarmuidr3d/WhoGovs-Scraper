@@ -1,7 +1,8 @@
 import datetime
 from lxml import html
 from Objects import Debate, Representative, RepSpoke
-from Scraper import to_str, get_page, encode
+from Scraper import to_str, get_page, encode, join_list_unicode_strings
+
 # Committee page by year has significantly different structure to the houses
 
 domain = "http://oireachtasdebates.oireachtas.ie/"
@@ -20,8 +21,9 @@ def get_debate_urls_for_year(house, year):
           house + "&year=" + to_str(year)
     year_page = get_page(url)
     day_urls = year_page.xpath(xpath_days_for_year)
-    for each in day_urls:
-        get_debate_content(domain + to_str(each))
+    # for each in day_urls: TODO: uncomment these two lines and remove the line after
+    #     get_debate_content(domain + to_str(each))
+    get_debate_content(domain + to_str(day_urls[0]))
 
 
 def get_debate_content(url):
@@ -39,7 +41,9 @@ def get_debate_content(url):
     proceeding_content_order = 0
     while not reached_end:
         page = get_page(url + str(page_num).zfill(5))
+        page_num += 1
         content = page.xpath(xpath_page_content)
+        reached_end = True
         if len(content) == 0:
             reached_end = True
         else:
@@ -52,18 +56,28 @@ def get_debate_content(url):
                         title = to_str(child.xpath(xpath_heading_text)[0])
                         current_proceeding = Debate(1, title, date)
                         proceeding_content_order = 0
-                    elif tag == 'h4':
+                    # elif tag == 'h4':
                     #     TODO: Add sub proceedings to the proceeding to allow for individual questions
+
                     elif tag == 'p':
-                        # question_number = child.xpath TODO: avoid including the description of a question in the debate
-                        identifier = "MemberID="
-                        rep_url = child.xpath("a[1]/@href")
-                        if len(rep_url) is not 0:
-                            rep_url = to_str(rep_url[0])
-                            rep_id = to_str(rep_url[rep_url.find(identifier)+len(identifier):])
-                            representative = Representative(rep_id)
-                        text = to_str(child.xpath("text()"))
-                        record = RepSpoke(rep_id + "_" + encode(title) + "_" + to_str(proceeding_content_order), representative, current_proceeding, text, proceeding_content_order,)
-                        current_proceeding.add_proceeding_record(record)
-                        proceeding_content_order += 1
-#                         TODO: create the repspoke / repwrote items and add them to the proceeding
+                        question_number = child.xpath("b[1]/font")
+                        print(question_number)
+                        if len(question_number) is 0:
+                            identifier = "MemberID="
+                            rep_url = child.xpath("a[1]/@href")
+                            if len(rep_url) is not 0:
+                                rep_url = to_str(rep_url[0])
+                                rep_id = to_str(rep_url[rep_url.find(identifier)+len(identifier):])
+                                representative = Representative(rep_id)
+                            #     TODO: choose the correct string from the text array
+                            text = child.xpath("text()")
+                            text = join_list_unicode_strings(text)
+                            print text
+                            if len(text) > 0:
+                                # text = to_str(text)
+                                text = text.strip()
+                                if text is not "":
+                                    record = RepSpoke(rep_id + "_" + encode(title) + "_" + to_str(proceeding_content_order), representative, current_proceeding, text, proceeding_content_order,)
+                                    current_proceeding.add_proceeding_record(record)
+                                    proceeding_content_order += 1
+    #                         TODO: create the repspoke / repwrote items and add them to the proceeding

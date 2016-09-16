@@ -37,4 +37,11 @@ def get_page(url):
     return html.fromstring(content)
 
 
-
+def join_list_unicode_strings(unicode_list):
+    """
+    :type unicode_list: list
+    """
+    output = ""
+    for each in unicode_list:
+        output += to_str(each)
+    return output
