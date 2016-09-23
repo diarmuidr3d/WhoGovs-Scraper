@@ -22,8 +22,10 @@ class MembersScraper:
     xpath_all_parties = "//li[span/text() = 'Party']/text()"
     xpath_appointments = "/html/body/div/div/div/div[1]/div[2]/div[1]/div/div[1]/div[6]/p[3]"
 
+    def __init__(self, graph):
+        self.graph = graph
+
     def scrape_details(self, member_id):
-        print(member_id)
         content = requests.get(self.members_url + to_str(member_id)).content
         page = html.fromstring(content)
         member_name = page.xpath(self.xpath_name)
@@ -53,12 +55,12 @@ class MembersScraper:
                 appointments = self.__parse_appointments(html.tostring(all_appointments[0]), representative)
             for each in range(0, len(all_constituencies)):
                 constituency_id = encode(to_str(all_constituencies[each]))
-                constituency = Constituency(constituency_id, all_constituencies[each])
+                constituency = Constituency(self.graph, constituency_id, all_constituencies[each])
                 organisations = []
                 if len(all_parties) > each:
                     organisations.append(Party(encode(to_str(all_parties[each])), all_parties[each]))
-                organisations.append(House(encode(to_str(all_houses[each])), all_houses[each]))
-                rep_record = RepInConstituency(to_str(member_id) + "_" + constituency_id, constituency, representative,
+                organisations.append(House(self.graph, encode(to_str(all_houses[each])), all_houses[each]))
+                rep_record = RepInConstituency(self.graph, to_str(member_id) + "_" + constituency_id, constituency, representative,
                                                organisations)
                 representative.add_rep_records(rep_record)
             return True
@@ -80,7 +82,7 @@ class MembersScraper:
                     trimmed = trimmed[index + 1:].strip()
             if current_dail not in return_values:
                 return_values[current_dail] = []
-            role = Role(to_str(representative.object_id) + "_role_" + to_str(role_id), representative, date(1916, 1, 1),
+            role = Role(self.graph, to_str(representative.object_id) + "_role_" + to_str(role_id), representative, date(1916, 1, 1),
                         title=trimmed)
             return_values[current_dail].append(role)
             role_id += 1

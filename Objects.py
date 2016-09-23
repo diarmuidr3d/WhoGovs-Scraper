@@ -8,24 +8,23 @@ OBJECTSNS = Namespace("http://www.whogovs.com/objects/")
 
 
 class MyGraph(Graph):
+    def __init__(self):
+        super(MyGraph, self).__init__()
+        self.namespace_manager.bind("WHOGOVS", WHOGOVSNS)
+        self.namespace_manager.bind("WGOBJ", OBJECTSNS)
+
     def add(self, (s, p, o)):
         if (s, p, o) not in self:
             Graph.add(self, (s, p, o))
 
-
-graph = MyGraph()
-graph.namespace_manager.bind("WHOGOVS", WHOGOVSNS)
-graph.namespace_manager.bind("WGOBJ", OBJECTSNS)
-
-
-def export_graph(filename):
-    if filename is not None:
-        output_file = open(filename, "wb")
-        graph.serialize(destination=output_file, format='n3', auto_compact=True)
+    def export(self, filename):
+        if filename is not None:
+            output_file = open(filename, "wb")
+            Graph.serialize(self, destination=output_file, format='n3', auto_compact=True)
 
 
 class LinkedClass(Resource):
-    def __init__(self, object_uri):
+    def __init__(self, graph, object_uri):
         self.object_id = object_uri
         class_name = self.__class__.__name__
         self.object_uri = OBJECTSNS + class_name + "/" + str(object_uri)
@@ -35,7 +34,7 @@ class LinkedClass(Resource):
 
 
 class Contactable(LinkedClass):
-    def __init__(self, unique_id, name=None, email_address=None, facebook_id=None, twitter_id=None, website_id=None):
+    def __init__(self, graph, unique_id, name=None, email_address=None, facebook_id=None, twitter_id=None, website_id=None):
         """
         :type unique_id: str
         :type website_id: str
@@ -44,7 +43,7 @@ class Contactable(LinkedClass):
         :type email_address: str
         :type name: str
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         if name is not None:
             self.set_name(name)
         if website_id is not None:
@@ -73,7 +72,7 @@ class Contactable(LinkedClass):
 
 
 class Person(Contactable):
-    def __init__(self, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
+    def __init__(self, graph, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
                  email_address=None, facebook_id=None, twitter_id=None, website_id=None):
         """
         :type unique_id: str
@@ -85,7 +84,7 @@ class Person(Contactable):
         :type born_on: date
         :type name: str
         """
-        Contactable.__init__(self, unique_id, name, email_address, facebook_id, twitter_id, website_id)
+        Contactable.__init__(self, graph, unique_id, name, email_address, facebook_id, twitter_id, website_id)
         if born_on is not None:
             self.add_birth_date(born_on)
         if died_on is not None:
@@ -137,7 +136,7 @@ class Person(Contactable):
 
 
 class Representative(Person):
-    def __init__(self, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
+    def __init__(self, graph, unique_id, name=None, born_on=None, died_on=None, profession=None, election_record=None,
                  email_address=None, facebook_id=None, twitter_id=None, website_id=None, has_rep_record=None):
         """
         :type has_rep_record: [RepInConstituency]
@@ -152,7 +151,7 @@ class Representative(Person):
         :type born_on: date
         :type name: str
         """
-        Person.__init__(self, unique_id, name, born_on, died_on, profession, election_record, email_address,
+        Person.__init__(self, graph, unique_id, name, born_on, died_on, profession, election_record, email_address,
                         facebook_id, twitter_id, website_id)
         if has_rep_record is not None:
             if type(has_rep_record) is list:
@@ -169,24 +168,24 @@ class Representative(Person):
 
 
 class Constituency(LinkedClass):
-    def __init__(self, unique_id, name):
+    def __init__(self, graph, unique_id, name):
         """
         :type unique_id: str
         :type name: str
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
 
 
 class Organisation(LinkedClass):
-    def __init__(self, unique_id, name, belongs_to=None, has_belonging=None):
+    def __init__(self, graph, unique_id, name, belongs_to=None, has_belonging=None):
         """
         :type unique_id: str
         :type name: str
         :type has_belonging: [Organisation]
         :type belongs_to: [Organisation]
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.hasName, Literal(name, datatype=XSD.Name))
         if has_belonging is not None:
             if type(has_belonging) is list:
@@ -227,35 +226,35 @@ class Organisation(LinkedClass):
 
 
 class Party(Contactable, Organisation):
-    def __init__(self, unique_id, name, email_address=None, facebook_id=None, twitter_id=None, website_id=None,
+    def __init__(self, graph, unique_id, name, email_address=None, facebook_id=None, twitter_id=None, website_id=None,
                  belongs_to=None,
                  has_belonging=None):
-        Contactable.__init__(self, unique_id, name, email_address, facebook_id, twitter_id, website_id)
-        Organisation.__init__(self, unique_id, name, belongs_to, has_belonging)
+        Contactable.__init__(self, graph, unique_id, name, email_address, facebook_id, twitter_id, website_id)
+        Organisation.__init__(self, graph, unique_id, name, belongs_to, has_belonging)
 
 
 class Legislature(Organisation):
-    def __init__(self, unique_id, name, belongs_to=None, has_belonging=None):
-        Organisation.__init__(self, unique_id, name, belongs_to, has_belonging)
+    def __init__(self, graph, unique_id, name, belongs_to=None, has_belonging=None):
+        Organisation.__init__(self, graph, unique_id, name, belongs_to, has_belonging)
 
 
 class Committee(Legislature):
-    def __init__(self, unique_id, name, belongs_to=None, has_belonging=None):
-        Legislature.__init__(self, unique_id, name, belongs_to, has_belonging)
+    def __init__(self, graph, unique_id, name, belongs_to=None, has_belonging=None):
+        Legislature.__init__(self, graph, unique_id, name, belongs_to, has_belonging)
 
 
 class House(Legislature):
-    def __init__(self, unique_id, name, belongs_to=None, has_belonging=None):
-        Legislature.__init__(self, unique_id, name, belongs_to, has_belonging)
+    def __init__(self, graph, unique_id, name, belongs_to=None, has_belonging=None):
+        Legislature.__init__(self, graph, unique_id, name, belongs_to, has_belonging)
 
 
 class Election(LinkedClass):
-    def __init__(self, unique_id, election_date, election_parts=None):
+    def __init__(self, graph, unique_id, election_date, election_parts=None):
         """
         :type unique_id: str
         :type election_date: date
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.onDate, election_date)
         if election_parts is not None:
             if type(election_parts) is list:
@@ -278,23 +277,23 @@ class Election(LinkedClass):
 
 
 class ConstituencyRecord(LinkedClass):
-    def __init__(self, unique_id, constituency):
+    def __init__(self, graph, unique_id, constituency):
         """
         :type unique_id: str
         :type constituency: Constituency
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.inConstituency, constituency)
 
 
 class ElectionRecord(ConstituencyRecord, LinkedClass):
-    def __init__(self, unique_id, constituency, candidates, election):
+    def __init__(self, graph, unique_id, constituency, candidates, election):
         """
         :type unique_id: str
         :type election: Election
         :type candidates: [Person]
         """
-        ConstituencyRecord.__init__(self, unique_id, constituency)
+        ConstituencyRecord.__init__(self, graph, unique_id, constituency)
         if type(candidates) is list:
             for each in candidates:
                 self.add(WHOGOVSNS.hasCandidate, each)
@@ -304,14 +303,14 @@ class ElectionRecord(ConstituencyRecord, LinkedClass):
 
 
 class TemporalRecord(LinkedClass):
-    def __init__(self, unique_id, start_date, end_date=None, title=None):
+    def __init__(self, graph, unique_id, start_date, end_date=None, title=None):
         """
         :type unique_id: str
         :type title: str
         :type end_date: date
         :type start_date: date
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.startDate, Literal(start_date, datatype=XSD.dateTime))
         if end_date is not None:
             self.add_end_date(end_date)
@@ -332,22 +331,22 @@ class TemporalRecord(LinkedClass):
 
 
 class RepresentativeRecord(LinkedClass):
-    def __init__(self, unique_id, representative):
+    def __init__(self, graph, unique_id, representative):
         """
         :type unique_id: str
         :type representative: Representative
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.set(WHOGOVSNS.representative, representative)
 
 
 class OrganisationRecord(LinkedClass):
-    def __init__(self, unique_id, organisations):
+    def __init__(self, graph, unique_id, organisations):
         """
         :type unique_id: str
         :type organisations: [Organisation]
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         if type(organisations) is list:
             for each in organisations:
                 self.add(WHOGOVSNS.inOrganisation, each)
@@ -356,26 +355,26 @@ class OrganisationRecord(LinkedClass):
 
 
 class RepInConstituency(ConstituencyRecord, TemporalRecord, RepresentativeRecord, OrganisationRecord):
-    def __init__(self, unique_id, constituency, representative, organisations, start_date=None, end_date=None,
+    def __init__(self, graph, unique_id, constituency, representative, organisations, start_date=None, end_date=None,
                  title=None):
         """
         :type unique_id: str
         :type constituency: Constituency
         :type representative: Representative
         """
-        ConstituencyRecord.__init__(self, unique_id, constituency)
+        ConstituencyRecord.__init__(self, graph, unique_id, constituency)
         if start_date is not None or end_date is not None:
-            TemporalRecord.__init__(self, unique_id, start_date, end_date, title)
-        RepresentativeRecord.__init__(self, unique_id, representative)
-        OrganisationRecord.__init__(self, unique_id, organisations)
+            TemporalRecord.__init__(self, graph, unique_id, start_date, end_date, title)
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
+        OrganisationRecord.__init__(self, graph, unique_id, organisations)
 
 
 class Proceeding(TemporalRecord):
-    def __init__(self, unique_id, start_date, end_date=None, title=None, proceeding_records=None):
+    def __init__(self, graph, unique_id, start_date, end_date=None, title=None, proceeding_records=None):
         """
         :type unique_id: str
         """
-        TemporalRecord.__init__(self, unique_id, start_date, end_date, title)
+        TemporalRecord.__init__(self, graph, unique_id, start_date, end_date, title)
         if proceeding_records is not None:
             if type(proceeding_records) is list:
                 self.add_proceeding_records_list(proceeding_records)
@@ -397,71 +396,71 @@ class Proceeding(TemporalRecord):
 
 
 class Debate(Proceeding):
-    def __init__(self, unique_id, title, start_date, end_date=None, proceeding_records=None):
-        Proceeding.__init__(self, unique_id, start_date, end_date, title, proceeding_records)
+    def __init__(self, graph, unique_id, title, start_date, end_date=None, proceeding_records=None):
+        Proceeding.__init__(self, graph, unique_id, start_date, end_date, title, proceeding_records)
 
 
 class Vote(Proceeding):
-    def __init__(self, unique_id, title, start_date, end_date=None, proceeding_records=None):
-        Proceeding.__init__(self, unique_id, start_date, end_date, title, proceeding_records)
+    def __init__(self, graph, unique_id, title, start_date, end_date=None, proceeding_records=None):
+        Proceeding.__init__(self, graph, unique_id, start_date, end_date, title, proceeding_records)
 
 
 class ProceedingRecord(LinkedClass):
-    def __init__(self, unique_id, proceeding):
+    def __init__(self, graph, unique_id, proceeding):
         """
         :type unique_id: str
         :type proceeding: Proceeding
         """
-        LinkedClass.__init__(self, unique_id)
+        LinkedClass.__init__(self, graph, unique_id)
         self.add(WHOGOVSNS.inProceeding, proceeding)
 
 
 class RepSpoke(ProceedingRecord, RepresentativeRecord):
-    def __init__(self, unique_id, representative, proceeding, content, order):
+    def __init__(self, graph, unique_id, representative, proceeding, content, order):
         """
         :type unique_id: str
         :type order: int
         :type content: str
         """
-        ProceedingRecord.__init__(self, unique_id, proceeding)
-        RepresentativeRecord.__init__(self, unique_id, representative)
+        ProceedingRecord.__init__(self, graph, unique_id, proceeding)
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
         self.add(WHOGOVSNS.order, Literal(order, datatype=XSD.positiveInteger))
         self.add(WHOGOVSNS.content, Literal(content, datatype=XSD.string))
 
 
 class RepWrote(ProceedingRecord, RepresentativeRecord):
-    def __init__(self, unique_id, representative, proceeding, content):
+    def __init__(self, graph, unique_id, representative, proceeding, content):
         """
         :type unique_id: str
         :type content: str
         """
-        ProceedingRecord.__init__(self, unique_id, proceeding)
-        RepresentativeRecord.__init__(self, unique_id, representative)
+        ProceedingRecord.__init__(self, graph, unique_id, proceeding)
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
         self.add(WHOGOVSNS.content, Literal(content, datatype=XSD.string))
 
 
 class RepVoted(ProceedingRecord, RepresentativeRecord):
-    def __init__(self, unique_id, representative, proceeding, vote):
+    def __init__(self, graph, unique_id, representative, proceeding, vote):
         """
         :type unique_id: str
         :type vote: VoteOption
         :type proceeding: Proceeding
         :type representative: Representative
         """
-        ProceedingRecord.__init__(self, unique_id, proceeding)
-        RepresentativeRecord.__init__(self, unique_id, representative)
+        ProceedingRecord.__init__(self, graph, unique_id, proceeding)
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
         self.add(WHOGOVSNS.vote, vote)
 
 
 class Membership(RepresentativeRecord, TemporalRecord):
-    def __init__(self, unique_id, representative, member_of, start_date, end_date=None, title=None):
+    def __init__(self, graph, unique_id, representative, member_of, start_date, end_date=None, title=None):
         """
         :type unique_id: str
         :type representative: Representative
         :type member_of: Organisation
         """
-        RepresentativeRecord.__init__(self, unique_id, representative)
-        TemporalRecord.__init__(self, unique_id, start_date, end_date, title)
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
+        TemporalRecord.__init__(self, graph, unique_id, start_date, end_date, title)
         if type(member_of) is list:
             for each in member_of:
                 self.add(WHOGOVSNS.memberOf, each)
@@ -470,19 +469,19 @@ class Membership(RepresentativeRecord, TemporalRecord):
 
 
 class Role(RepresentativeRecord, TemporalRecord):
-    def __init__(self, unique_id, representative, start_date, end_date=None, title=None):
-        RepresentativeRecord.__init__(self, unique_id, representative)
-        TemporalRecord.__init__(self, unique_id, start_date, end_date, title)
+    def __init__(self, graph, unique_id, representative, start_date, end_date=None, title=None):
+        RepresentativeRecord.__init__(self, graph, unique_id, representative)
+        TemporalRecord.__init__(self, graph, unique_id, start_date, end_date, title)
 
 
 class VoteOption(LinkedClass):
-    def __init__(self, vote):
+    def __init__(self, graph, vote):
         """
         :type vote: Tribool
         """
         if vote.value is True:
-            LinkedClass.__init__(self, "Yes")
+            LinkedClass.__init__(self, graph, "Yes")
         elif vote.value is False:
-            LinkedClass.__init__(self, "No")
+            LinkedClass.__init__(self, graph, "No")
         else:
-            LinkedClass.__init__(self, "Abstain")
+            LinkedClass.__init__(self, graph, "Abstain")
