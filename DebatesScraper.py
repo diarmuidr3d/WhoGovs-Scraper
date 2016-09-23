@@ -5,7 +5,7 @@ from Scraper import to_str, get_page, encode, join_list_unicode_strings
 
 # Committee page by year has significantly different structure to the houses
 
-domain = "http://oireachtasdebates.oireachtas.ie/"
+domain = "http://oireachtasdebates.oireachtas.ie"
 
 xpath_days_for_year = "/html/body/div[1]/div/div/div[3]/div/table/tr/td[2]/a/@href"
 xpath_headings_for_debate = "/html/body/div[1]/div/div/div[3]/div/table[2]/tr/td/h3/text()"
@@ -22,20 +22,22 @@ def get_debate_urls_for_year(house, year):
     year_page = get_page(url)
     day_urls = year_page.xpath(xpath_days_for_year)
     # for each in day_urls: TODO: uncomment these two lines and remove the line after
-    #     get_debate_content(domain + to_str(each))
-    get_debate_content(domain + to_str(day_urls[0]))
+    #     get_debate_content(domain + to_str(each), house)
+    get_debate_content(domain + to_str(day_urls[0]), house)
 
 
-def get_debate_content(url):
+def get_debate_content(url, house):
     """
     :type url: str
     """
     xpath_heading_text = "text()"
     page_num = 3
-    cut_off = url.find("0000")
-    url = url[:cut_off]
-    datestring = url[len(url)-8:]
+    cut_off = url.find(house)+len(house)
+    datestring = url[cut_off:cut_off+8]
+    print("url: ", url)
+    print("datestring: ", datestring)
     date = datetime.date(int(datestring[:4]), int(datestring[4:6]), int(datestring[6:]))
+    print("Date: ", date)
     reached_end = False
     current_proceeding = None
     proceeding_content_order = 0
@@ -49,7 +51,6 @@ def get_debate_content(url):
         else:
             content = content[0]
             for child in list(content):
-                print(child)
                 if type(child) is html.HtmlElement:
                     tag = child.tag
                     if tag == 'h3':
@@ -61,7 +62,6 @@ def get_debate_content(url):
 
                     elif tag == 'p':
                         question_number = child.xpath("b[1]/font")
-                        print(question_number)
                         if len(question_number) is 0:
                             identifier = "MemberID="
                             rep_url = child.xpath("a[1]/@href")
