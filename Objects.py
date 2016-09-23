@@ -398,12 +398,12 @@ class Proceeding(TemporalRecord):
 
 class Debate(Proceeding):
     def __init__(self, unique_id, title, start_date, end_date=None, proceeding_records=None):
-        Proceeding.__init__(self, unique_id, title, start_date, end_date, proceeding_records)
+        Proceeding.__init__(self, unique_id, start_date, end_date, title, proceeding_records)
 
 
 class Vote(Proceeding):
     def __init__(self, unique_id, title, start_date, end_date=None, proceeding_records=None):
-        Proceeding.__init__(self, unique_id, title, start_date, end_date, proceeding_records)
+        Proceeding.__init__(self, unique_id, start_date, end_date, title, proceeding_records)
 
 
 class ProceedingRecord(LinkedClass):
