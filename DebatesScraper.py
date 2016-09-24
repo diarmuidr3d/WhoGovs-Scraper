@@ -16,7 +16,7 @@ class DebatesScraper:
     def __init__(self, graph):
         self.graph = graph
 
-    def get_debate_urls_for_year(house, year):
+    def get_debate_urls_for_year(self, house, year):
         """
         :type year: int
         :type house: str
@@ -29,18 +29,16 @@ class DebatesScraper:
         #     get_debate_content(domain + to_str(each), house)
         self.get_debate_content(domain + to_str(day_urls[0]), house)
 
-    def get_debate_content(url, house):
+    def get_debate_content(self, url, house):
         """
         :type url: str
         """
         xpath_heading_text = "text()"
         page_num = 3
         cut_off = url.find(house)+len(house)
+        url=url[:cut_off+8]
         datestring = url[cut_off:cut_off+8]
-        print("url: ", url)
-        print("datestring: ", datestring)
         date = datetime.date(int(datestring[:4]), int(datestring[4:6]), int(datestring[6:]))
-        print("Date: ", date)
         reached_end = False
         current_proceeding = None
         proceeding_content_order = 0

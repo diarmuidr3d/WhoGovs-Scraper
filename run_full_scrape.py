@@ -36,8 +36,8 @@ def scrape_all_debates():
 
 
 if __name__ == "__main__":
+    graph = MyGraph()
     try:
-        graph = MyGraph()
         # scrape_all_members()
         scrape_all_debates()
     except (KeyboardInterrupt, SystemExit, Exception) as err:
