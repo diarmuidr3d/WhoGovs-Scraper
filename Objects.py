@@ -416,16 +416,27 @@ class ProceedingRecord(LinkedClass):
 
 
 class RepSpoke(ProceedingRecord, RepresentativeRecord):
-    def __init__(self, graph, unique_id, representative, proceeding, content, order):
+    def __init__(self, graph, unique_id, representative, proceeding, content_value, order):
         """
         :type unique_id: str
         :type order: int
-        :type content: str
+        :type content_value: str
         """
         ProceedingRecord.__init__(self, graph, unique_id, proceeding)
         RepresentativeRecord.__init__(self, graph, unique_id, representative)
         self.add(WHOGOVSNS.order, Literal(order, datatype=XSD.positiveInteger))
-        self.add(WHOGOVSNS.content, Literal(content, datatype=XSD.string))
+        self.content = content_value
+
+    @property
+    def content(self):
+        return self.objects(WHOGOVSNS.content).next()
+
+    @content.setter
+    def content(self, content_value):
+        """
+        :type content_value: str
+        """
+        self.set(WHOGOVSNS.content, Literal(content_value, datatype=XSD.string))
 
 
 class RepWrote(ProceedingRecord, RepresentativeRecord):

@@ -42,12 +42,16 @@ class DebatesScraper:
         reached_end = False
         current_proceeding = None
         proceeding_content_order = 0
+        previous_representative = None
+        previous_speech = None
         while not reached_end:
             page = get_page(url + str(page_num).zfill(5))
+            print(url + str(page_num).zfill(5))
             page_num += 1
             content = page.xpath(xpath_page_content)
-            reached_end = True
+            # reached_end = True # Comment this out to scrape whole day
             if len(content) == 0:
+                print("REACHED END")
                 reached_end = True
             else:
                 content = content[0]
@@ -58,6 +62,8 @@ class DebatesScraper:
                             title = to_str(child.xpath(xpath_heading_text)[0])
                             current_proceeding = Debate(self.graph, 1, title, date)
                             proceeding_content_order = 0
+                            previous_representative = None
+                            previous_speech = None
                         # elif tag == 'h4':
                         #     TODO: Add sub proceedings to the proceeding to allow for individual questions
 
@@ -78,7 +84,11 @@ class DebatesScraper:
                                     # text = to_str(text)
                                     text = text.strip()
                                     if text is not "":
-                                        record = RepSpoke(self.graph, rep_id + "_" + encode(title) + "_" + to_str(proceeding_content_order), representative, current_proceeding, text, proceeding_content_order,)
-                                        current_proceeding.add_proceeding_record(record)
-                                        proceeding_content_order += 1
-        #                         TODO: create the repspoke / repwrote items and add them to the proceeding
+                                        if previous_representative is not None and rep_id == previous_representative:
+                                            text = previous_speech.content + " " + text
+                                            previous_speech.content = text
+                                        else:
+                                            previous_speech = RepSpoke(self.graph, rep_id + "_" + encode(title) + "_" + to_str(proceeding_content_order), representative, current_proceeding, text, proceeding_content_order,)
+                                            current_proceeding.add_proceeding_record(previous_speech)
+                                            proceeding_content_order += 1
+                            previous_representative = rep_id
